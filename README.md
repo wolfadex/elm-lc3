@@ -12,7 +12,7 @@ Learning resources for my implementation
 Op codes supported
 - [x] ADD
 - [x] AND
-- [ ] NOT
+- [x] NOT
 - [ ] BR
 - [ ] JMP
 - [ ] JSR

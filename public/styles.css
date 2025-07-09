@@ -16,6 +16,11 @@ td {
     padding: 8px 10px;
 }
 
+.memoryPointedAt {
+    background-color: cornflowerblue;
+    color: cornsilk;
+}
+
 .temp {
     color: red;
 }
