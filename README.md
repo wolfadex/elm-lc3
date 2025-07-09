@@ -1,19 +1,26 @@
-# Elm Template Minimal
+# LC-3
 
-A basic template for tiny Elm projects.
-
-## Features
-- [elm-watch](https://lydell.github.io/elm-watch/what-elm-watch-is/) for live reloading and dev server
-- [@ryannhg/css-in-elm](https://www.npmjs.com/package/@ryannhg/css-in-elm) for CSS code generation
-- [elm-format](https://github.com/avh4/elm-format) for code formatting
-- [elm-review](https://www.npmjs.com/package/elm-review) for code review and cleanup
-- [run-pty](https://www.npmjs.com/package/run-pty) for running the dev environment in a clean and easy to read manner
+A rough implementation of Little Computer 3 (LC-3) in Elm
 
 
-## Getting Started
 
-Clone this template, then run
-```sh
-npm install
-npm run dev
-```
+Learning resources for my implementation
+- https://zserge.com/posts/post-apocalyptic-programming/
+- https://github.com/SrivastavaShreyas/Little-Computer-3-LC-3/blob/main/pseudoCode.c
+- https://medium.com/@saehwanpark/diving-deeper-into-lc-3-from-opcodes-to-machine-code-4637cf00c878
+
+Op codes supported
+- [x] ADD
+- [x] AND
+- [ ] NOT
+- [ ] B
+- [ ] JMP
+- [ ] JS
+- [ ] LD
+- [ ] LD
+- [ ] LD
+- [ ] S
+- [ ] ST
+- [ ] ST
+- [ ] LE
+- [ ] TRAP
