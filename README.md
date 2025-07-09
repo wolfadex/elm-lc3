@@ -13,14 +13,14 @@ Op codes supported
 - [x] ADD
 - [x] AND
 - [ ] NOT
-- [ ] B
+- [ ] BR
 - [ ] JMP
-- [ ] JS
+- [ ] JSR
 - [ ] LD
-- [ ] LD
-- [ ] LD
-- [ ] S
+- [ ] LDI
+- [ ] LDR
 - [ ] ST
-- [ ] ST
-- [ ] LE
+- [ ] STI
+- [ ] STR
+- [ ] LEA
 - [ ] TRAP
