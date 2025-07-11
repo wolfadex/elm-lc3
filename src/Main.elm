@@ -7,6 +7,7 @@ import Css
 import Html exposing (Html)
 import Html.Attributes
 import Html.Events
+import Parser exposing ((|.), (|=), Parser)
 
 
 main : Program () Model Msg
@@ -22,6 +23,8 @@ main =
 type alias Model =
     { current : Computer
     , initial : Computer
+    , rawSource : String
+    , compileError : Maybe String
     }
 
 
@@ -94,7 +97,14 @@ init _ =
                     ]
             }
     in
-    ( { current = initial, initial = initial }
+    ( { current = initial
+      , initial = initial
+      , rawSource = """ADD R1, R0, #3
+ADD R2, R0, #-5
+ADD R0, R1, R2
+HALT"""
+      , compileError = Nothing
+      }
     , Cmd.none
     )
 
@@ -108,6 +118,8 @@ type Msg
     = Run
     | Step
     | Reset
+    | UserChangedRawSource String
+    | UserCllickedCompile
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -121,6 +133,30 @@ update msg model =
 
         Reset ->
             ( { model | current = model.initial }, Cmd.none )
+
+        UserChangedRawSource rawSource ->
+            ( { model | rawSource = rawSource }, Cmd.none )
+
+        UserCllickedCompile ->
+            case parse model.rawSource of
+                Err err ->
+                    ( { model | compileError = Just err }, Cmd.none )
+
+                Ok instructions ->
+                    let
+                        initial =
+                            model.initial
+
+                        newInitial =
+                            { initial | memory = instructions }
+                    in
+                    ( { model
+                        | initial = newInitial
+                        , current = newInitial
+                        , compileError = Nothing
+                      }
+                    , Cmd.none
+                    )
 
 
 run : Computer -> Computer
@@ -329,7 +365,7 @@ view model =
         [ Html.h1 [] [ Html.text "Little Computer 3" ]
         , Html.div
             [ Html.Attributes.style "display" "grid"
-            , Html.Attributes.style "grid-template-columns" "20rem auto"
+            , Html.Attributes.style "grid-template-columns" "20rem auto auto"
             ]
             [ Html.table
                 []
@@ -523,6 +559,136 @@ view model =
                         , Html.Attributes.style "align-content" "flex-start"
                         ]
                 ]
+            , Html.label
+                [ Html.Attributes.style "display" "flex"
+                , Html.Attributes.style "flex-direction" "column"
+                ]
+                [ Html.span []
+                    [ Html.text "Raw source "
+                    , Html.button
+                        [ Html.Events.onClick UserCllickedCompile ]
+                        [ Html.text "Compile" ]
+                    ]
+                , Html.textarea
+                    [ Html.Attributes.value model.rawSource
+                    , Html.Events.onInput UserChangedRawSource
+                    ]
+                    []
+                , model.compileError
+                    |> Maybe.withDefault ""
+                    |> Html.text
+                ]
             ]
         ]
     }
+
+
+
+--
+
+
+parse : String -> Result String (Array Instruction)
+parse source =
+    case Parser.run parseSource source of
+        Ok instructions ->
+            Ok instructions
+
+        Err err ->
+            Err (Debug.toString err)
+
+
+parseSource : Parser (Array Instruction)
+parseSource =
+    Parser.succeed Array.fromList
+        |. Parser.spaces
+        |= Parser.loop [] parseInstructions
+
+
+parseInstructions : List Instruction -> Parser (Parser.Step (List Instruction) (List Instruction))
+parseInstructions reverseInstructions =
+    Parser.oneOf
+        [ Parser.succeed (\instruction -> Parser.Loop (instruction :: reverseInstructions))
+            |= parseInstruction
+        , Parser.succeed (Parser.Done (List.reverse reverseInstructions))
+        ]
+
+
+parseInstruction : Parser Instruction
+parseInstruction =
+    Parser.oneOf
+        [ parseAdd
+        , parseTrap
+        ]
+
+
+parseAdd : Parser Instruction
+parseAdd =
+    Parser.succeed ADD
+        |. Parser.keyword "ADD"
+        |. Parser.spaces
+        |= parseRegister
+        |. Parser.chompIf ((==) ',')
+        |. Parser.spaces
+        |= parseRegister
+        |. Parser.chompIf ((==) ',')
+        |. Parser.spaces
+        |= Parser.oneOf
+            [ parseRegister |> Parser.map RegisterValue
+            , parseLiteral |> Parser.map Immediate
+            ]
+        |. Parser.spaces
+
+
+parseRegister : Parser Int
+parseRegister =
+    Parser.succeed identity
+        |. Parser.chompIf ((==) 'R')
+        |= parseInt
+
+
+parseLiteral : Parser Int
+parseLiteral =
+    Parser.succeed identity
+        |. Parser.chompIf ((==) '#')
+        |= parseInt
+
+
+parseTrap : Parser Instruction
+parseTrap =
+    Parser.succeed TRAP
+        |= Parser.oneOf
+            [ Parser.succeed GETC
+                |. Parser.keyword "GETC"
+            , Parser.succeed OUT
+                |. Parser.keyword "OUT"
+            , Parser.succeed PUTS
+                |. Parser.keyword "PUTS"
+            , Parser.succeed IN
+                |. Parser.keyword "IN"
+            , Parser.succeed PUTSP
+                |. Parser.keyword "PUTSP"
+            , Parser.succeed HALT
+                |. Parser.keyword "HALT"
+            ]
+        |. Parser.spaces
+
+
+parseInt : Parser Int
+parseInt =
+    Parser.succeed ()
+        |. Parser.oneOf
+            [ Parser.chompIf ((==) '-')
+            , Parser.succeed ()
+            ]
+        |. Parser.chompIf Char.isDigit
+        |. Parser.chompWhile Char.isDigit
+        |> Parser.getChompedString
+        |> Parser.andThen
+            (\digits ->
+                case String.toInt digits of
+                    Nothing ->
+                        Parser.problem "Expected an integer"
+
+                    Just int ->
+                        Parser.succeed int
+            )
